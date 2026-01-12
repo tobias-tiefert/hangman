@@ -3,10 +3,21 @@ class Game
 
   def initialize
     @winner = nil
-    start_game
+    ask_mode
   end
 
   private
+
+  def ask_mode
+    puts 'To start a new game press n to load a game press l'
+    mode = gets.chomp
+
+    if mode == 'l'
+      load_game
+    else
+      start_game
+    end
+  end
 
   def start_game
     @computer = Computer.new
@@ -38,10 +49,13 @@ class Game
     puts '-------------------------------------------'
     puts "Wrong characters so far: #{@player.wrong_letters}"
     puts "Wrong guesses so far: #{@player.wrong_guesses} of #{MAX_WRONG_GUESSES}"
+    puts "To save the current game write 'save' "
   end
 
   def update_result(letter)
-    if @computer.secret_word.include? letter
+    if letter.length > 1
+      save_game
+    elsif @computer.secret_word.include? letter
       update_player_guess(letter)
     else
       @player.wrong_guesses += 1
@@ -73,5 +87,33 @@ class Game
       puts 'You won the game!'
       puts @computer.secret_word
     end
+  end
+
+  def save_game
+    puts 'Saving your current game'
+    savegame = {
+      secret_word: @computer.secret_word,
+      wrong_guesses: @player.wrong_guesses,
+      wrong_letters: @player.wrong_letters,
+      player_guess: @player_guess
+    }
+    saved_game = File.new 'saved_game.yml', 'w'
+    saved_game.puts YAML.dump(savegame).to_s
+    saved_game.close
+    @winner = 'saved'
+  end
+
+  def load_game
+    loaded_file = File.open('saved_game.yml')
+    loaded_game = ''
+    while line = loaded_file.gets
+      loaded_game += line
+    end
+    loaded_game = YAML.load(loaded_game)
+    puts loaded_game[:secret_word]
+    @computer = Computer.new(loaded_game[:secret_word])
+    @player = Player.new(loaded_game[:wrong_guesses], loaded_game[:wrong_letters])
+    @player_guess = loaded_game[:player_guess]
+    play_game
   end
 end
